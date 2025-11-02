@@ -1,0 +1,8 @@
+{
+  "name": "Coin Toss",
+  "description": "Mini game tung đồng xu — đoán sấp hay ngửa!",
+  "url": "https://your-vercel-domain.vercel.app",
+  "icon": "https://your-vercel-domain.vercel.app/icon.png",
+  "author": "Khí",
+  "version": "1.0.0"
+}
