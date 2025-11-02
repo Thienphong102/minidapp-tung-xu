@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dapp Tung Đồng Xu - Base</title>
+  <script src="https://unpkg.com/@farcaster/miniapps-sdk@latest/dist/sdk.umd.js"></script>
+  <script src="https://unpkg.com/viem/dist/viem.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: radial-gradient(circle at center, #fefce8, #facc15);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 { margin-bottom: 20px; }
+    .coin {
+      margin: 30px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: gold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: bold;
+      color: #333;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      transition: transform 1s ease-in-out;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 10px 25px;
+      border-radius: 10px;
+      border: none;
+      background: #ca8a04;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .result {
+      margin-top: 25px;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    #status {
+      margin-top: 10px;
+      color: #444;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🪙 Tung Đồng Xu (Base)</h1>
+  <div class="coin" id="coin">🪙</div>
+  <button id="connectBtn">🔗 Kết nối ví</button>
+  <button id="tossBtn">🎲 Tung!</button>
+  <div class="result" id="result"></div>
+  <div id="status"></div>
+
+  <script>
+    const { sdk } = window.FarcasterMiniApp || { sdk: { actions: { ready: () => {} } } };
+    const { createPublicClient, createWalletClient, custom, http, chains } = window.viem;
+    const { baseSepolia } = window.viem.chains;
+
+    const coin = document.getElementById("coin");
+    const resultEl = document.getElementById("result");
+    const connectBtn = document.getElementById("connectBtn");
+    const tossBtn = document.getElementById("tossBtn");
+    const statusEl = document.getElementById("status");
+
+    // Kết nối mạng Base testnet (Base Sepolia)
+    const publicClient = createPublicClient({
+      chain: baseSepolia,
+      transport: http()
+    });
+
+    let walletClient = null;
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        alert("Vui lòng cài MetaMask hoặc mở trong ví Farcaster có Ethereum provider.");
+        return;
+      }
+      try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        walletClient = createWalletClient({
+          account: accounts[0],
+          chain: baseSepolia,
+          transport: custom(window.ethereum)
+        });
+        statusEl.textContent = `✅ Đã kết nối: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`;
+      } catch (err) {
+        console.error(err);
+        alert("Không thể kết nối ví.");
+      }
+    }
+
+    connectBtn.addEventListener("click", connectWallet);
+
+    tossBtn.addEventListener("click", async () => {
+      resultEl.textContent = "";
+      coin.style.transform = "rotateY(0deg)";
+      coin.style.transition = "transform 1s ease-in-out";
+      coin.style.transform = "rotateY(3600deg)";
+
+      setTimeout(async () => {
+        const outcomes = ["Sấp 🪙", "Ngửa 🪙"];
+        const result = outcomes[Math.floor(Math.random() * outcomes.length)];
+        resultEl.textContent = result;
+
+        if (walletClient) {
+          try {
+            statusEl.textContent = "⏳ Gửi transaction lên Base...";
+            const tx = await walletClient.sendTransaction({
+              to: walletClient.account.address, // gửi cho chính mình (demo)
+              value: 0n, // 0 ETH, chỉ để test
+            });
+            statusEl.innerHTML = `✅ Gửi thành công! Tx: <a href="https://sepolia.basescan.org/tx/${tx}" target="_blank">${tx.slice(0,10)}...</a>`;
+          } catch (err) {
+            console.error(err);
+            statusEl.textContent = "❌ Lỗi gửi transaction.";
+          }
+        } else {
+          statusEl.textContent = "⚠️ Chưa kết nối ví!";
+        }
+
+        sdk.actions.ready();
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
